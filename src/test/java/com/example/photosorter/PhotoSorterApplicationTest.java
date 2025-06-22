@@ -31,10 +31,9 @@ class PhotoSorterApplicationTest {
         FileTime fileTime = FileTime.from(creationTime); // 将 Instant 轉換為 FileTime
         Files.setAttribute(testFile.toPath(), "creationTime", fileTime);
         // 設置配置參數（臨時目錄）
-        System.setProperty("photo-sorter.source-folder", sourceFolder.getAbsolutePath());
+        photoSorterApplication.setSourceFolderPath(sourceFolder.getAbsolutePath());
         File destinationFolder = new File(tempDir, "destination");
-        System.setProperty("photo-sorter.destination-folder", destinationFolder.getAbsolutePath());
-
+        photoSorterApplication.setDestinationFolderPath(destinationFolder.getAbsolutePath());
         // 執行排序邏輯
         photoSorterApplication.run();
 

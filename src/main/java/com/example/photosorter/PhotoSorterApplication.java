@@ -14,8 +14,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import lombok.Setter;
+
 @SpringBootApplication
 @Component
+@Setter
 public class PhotoSorterApplication implements CommandLineRunner {
 
     @Value("${photo-sorter.source-folder}")
