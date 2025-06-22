@@ -1,5 +1,8 @@
 package com.example.photosorter;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,7 +15,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @SpringBootApplication
+@Component
 public class PhotoSorterApplication implements CommandLineRunner {
+
+    @Value("${photo-sorter.source-folder}")
+    private String sourceFolderPath;
+
+    @Value("${photo-sorter.destination-folder}")
+    private String destinationFolderPath;
+    private File destinationRoot;
 
     public static void main(String[] args) {
         SpringApplication.run(PhotoSorterApplication.class, args);
@@ -20,13 +31,15 @@ public class PhotoSorterApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (args.length < 1) {
-            System.out.println("請提供照片資料夾路徑作為參數。");
-            return;
-        }
-        String sourceFolderPath = args[0];
+
         File sourceFolder = new File(sourceFolderPath);
+        destinationRoot = new File(destinationFolderPath);
+        if (!destinationRoot.exists()) {
+            destinationRoot.mkdirs();
+        }
         if (!sourceFolder.exists() || !sourceFolder.isDirectory()) {
+            System.out.println("來源資料夾 " + sourceFolderPath + " 不存在或不是一個有效的資料夾。");
+
             System.out.println("指定的資料夾不存在或不是一個有效的資料夾。");
             return;
         }
@@ -42,11 +55,13 @@ public class PhotoSorterApplication implements CommandLineRunner {
                     BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
                     Date creationDate = new Date(attributes.creationTime().toMillis());
                     String folderName = dateFormat.format(creationDate);
-                    File destinationFolder = new File(sourceFolder, folderName);
+                    File destinationFolder = new File(destinationRoot, folderName);
                     if (!destinationFolder.exists()) {
                         destinationFolder.mkdirs();
                     }
                     File destinationFile = new File(destinationFolder, file.getName());
+                    // 确保目标目录存在
+                    Files.createDirectories(destinationFile.toPath().getParent());
                     Files.copy(file.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 }
             }
