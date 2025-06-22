@@ -15,6 +15,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import lombok.Setter;
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 @SpringBootApplication
 @Component
@@ -55,9 +58,21 @@ public class PhotoSorterApplication implements CommandLineRunner {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
             for (File file : files) {
                 if (file.isFile()) {
-                    BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-                    Date creationDate = new Date(attributes.creationTime().toMillis());
-                    String folderName = dateFormat.format(creationDate);
+                    Date photoDate = null;
+                    try {
+                        Metadata metadata = ImageMetadataReader.readMetadata(file);
+                        ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+                        if (directory != null) {
+                            photoDate = directory.getDateOriginal();
+                        }
+                    } catch (Exception e) {
+                        // 讀取 EXIF 失敗時忽略，改用檔案建立日期
+                    }
+                    if (photoDate == null) {
+                        BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+                        photoDate = new Date(attributes.creationTime().toMillis());
+                    }
+                    String folderName = dateFormat.format(photoDate);
                     File destinationFolder = new File(destinationRoot, folderName);
                     if (!destinationFolder.exists()) {
                         destinationFolder.mkdirs();
