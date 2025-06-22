@@ -5,11 +5,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -30,11 +28,7 @@ class PhotoSorterApplicationTest {
         Files.createFile(testFile.toPath());
         // 設置文件創建時間為2024-01-15
         Instant creationTime = Instant.parse("2024-01-15T12:00:00Z");
-        // 原错误代码（示例）
-        Files.setAttribute(testFile.toPath(), "creationTime", FileTime.from(creationTime));
-
-        // 修正后代码
-        FileTime fileTime = FileTime.from(creationTime); // 将 Instant 转换为 FileTime
+        FileTime fileTime = FileTime.from(creationTime); // 将 Instant 轉換為 FileTime
         Files.setAttribute(testFile.toPath(), "creationTime", fileTime);
         // 設置配置參數（臨時目錄）
         System.setProperty("photo-sorter.source-folder", sourceFolder.getAbsolutePath());
