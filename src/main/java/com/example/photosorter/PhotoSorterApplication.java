@@ -68,45 +68,66 @@ public class PhotoSorterApplication implements CommandLineRunner {
     }
 
     private void sortPhotosByCreationDate(File sourceFolder) throws IOException {
-        File[] files = sourceFolder.listFiles();
-        if (files != null) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
-            int processedCount = 0;
-            TreeSet<String> monthFolders = new TreeSet<>();
-            for (File file : files) {
-                if (file.isFile()) {
-                    Date photoDate = null;
-                    try {
-                        Metadata metadata = ImageMetadataReader.readMetadata(file);
-                        ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-                        if (directory != null) {
-                            photoDate = directory.getDateOriginal();
-                        }
-                    } catch (Exception e) {
-                        // 讀取 EXIF 失敗時忽略，改用檔案建立日期
-                    }
-                    if (photoDate == null) {
-                        BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-                        photoDate = new Date(attributes.creationTime().toMillis());
-                    }
-                    String folderName = dateFormat.format(photoDate);
-                    monthFolders.add(folderName);
-                    File destinationFolder = new File(destinationRoot, folderName);
-                    if (!destinationFolder.exists()) {
-                        destinationFolder.mkdirs();
-                    }
-                    File destinationFile = new File(destinationFolder, file.getName());
-                    // 确保目标目录存在
-                    Files.createDirectories(destinationFile.toPath().getParent());
-                    Files.copy(file.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    processedCount++;
-                }
-            }
-            System.out.println("總共處理了 " + processedCount + " 個檔案");
-            if (!monthFolders.isEmpty()) {
-                System.out.println("處理月份範圍: " + monthFolders.first() + " ~ " + monthFolders.last() + " (共 "
-                        + monthFolders.size() + " 個月份)");
-            }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
+        TreeSet<String> monthFolders = new TreeSet<>();
+        int processedCount = processFolder(sourceFolder, dateFormat, monthFolders);
+
+        System.out.println("總共處理了 " + processedCount + " 個檔案");
+        if (!monthFolders.isEmpty()) {
+            System.out.println("處理月份範圍: " + monthFolders.first() + " ~ " + monthFolders.last() + " (共 "
+                    + monthFolders.size() + " 個月份)");
         }
+    }
+
+    private int processFolder(File folder, SimpleDateFormat dateFormat, TreeSet<String> monthFolders)
+            throws IOException {
+        File[] files = folder.listFiles();
+        if (files == null) {
+            return 0;
+        }
+
+        int processedCount = 0;
+        for (File file : files) {
+            if (shouldSkipFolder(file)) {
+                continue;
+            }
+
+            if (file.isDirectory()) {
+                processedCount += processFolder(file, dateFormat, monthFolders);
+                continue;
+            }
+
+            Date photoDate = null;
+            try {
+                Metadata metadata = ImageMetadataReader.readMetadata(file);
+                ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+                if (directory != null) {
+                    photoDate = directory.getDateOriginal();
+                }
+            } catch (Exception e) {
+                // 讀取 EXIF 失敗時忽略，改用檔案建立日期
+            }
+            if (photoDate == null) {
+                BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+                photoDate = new Date(attributes.creationTime().toMillis());
+            }
+            String folderName = dateFormat.format(photoDate);
+            monthFolders.add(folderName);
+            File destinationFolder = new File(destinationRoot, folderName);
+            if (!destinationFolder.exists()) {
+                destinationFolder.mkdirs();
+            }
+            File destinationFile = new File(destinationFolder, file.getName());
+            Files.createDirectories(destinationFile.toPath().getParent());
+            Files.copy(file.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            processedCount++;
+        }
+
+        return processedCount;
+    }
+
+    private boolean shouldSkipFolder(File file) throws IOException {
+        return file.isDirectory() && destinationRoot != null
+                && file.getCanonicalFile().equals(destinationRoot.getCanonicalFile());
     }
 }

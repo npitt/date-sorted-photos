@@ -23,8 +23,9 @@ class PhotoSorterApplicationTest {
     void testSortPhotosByCreationDate() throws Exception {
         // 創建測試用臨時文件
         File sourceFolder = new File(tempDir, "source");
-        sourceFolder.mkdirs();
-        File testFile = new File(sourceFolder, "test.jpg");
+        File nestedFolder = new File(sourceFolder, "CameraRoll");
+        nestedFolder.mkdirs();
+        File testFile = new File(nestedFolder, "test.jpg");
         Files.createFile(testFile.toPath());
         // 設置文件創建時間為2024-01-15
         Instant creationTime = Instant.parse("2024-01-15T12:00:00Z");
@@ -32,7 +33,7 @@ class PhotoSorterApplicationTest {
         Files.setAttribute(testFile.toPath(), "creationTime", fileTime);
         // 設置配置參數（臨時目錄）
         photoSorterApplication.setSourceFolderPath(sourceFolder.getAbsolutePath());
-        File destinationFolder = new File(tempDir, "destination");
+        File destinationFolder = new File(sourceFolder, "Sorted");
         photoSorterApplication.setDestinationFolderPath(destinationFolder.getAbsolutePath());
         // 執行排序邏輯
         photoSorterApplication.run();
@@ -44,5 +45,7 @@ class PhotoSorterApplicationTest {
         // 驗證文件是否複製成功
         File copiedFile = new File(expectedFolder, "test.jpg");
         assertTrue(copiedFile.exists(), "文件未成功複製到目標文件夾");
+
+        assertFalse(new File(destinationFolder, "Sorted").exists(), "不應遞迴處理輸出資料夾");
     }
 }
